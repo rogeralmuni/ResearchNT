@@ -1,0 +1,28 @@
+{
+  "name": "vc-startup-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.5",
+    "next": "13.4.19",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "zustand": "4.4.1",
+    "openai": "4.20.0",
+    "tailwindcss": "3.4.1",
+    "autoprefixer": "10.4.14",
+    "postcss": "8.4.24"
+  },
+  "devDependencies": {
+    "typescript": "5.2.2",
+    "@types/node": "20.4.2",
+    "@types/react": "18.2.14",
+    "@types/react-dom": "18.2.7"
+  }
+} 

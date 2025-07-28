@@ -1,0 +1,390 @@
+Funciones:
+
+🏠 1. Dashboard general
+Objetivo: Vista rápida del estado del pipeline y tareas pendientes.
+
+Funcionalidades:
+
+Vista de startups activas / en análisis / rechazadas / invertidas.
+
+Resúmenes ejecutivos generados recientemente.
+
+Últimos documentos subidos.
+
+Alertas: tareas pendientes, análisis incompletos, follow-ups próximos.
+
+🗂️ 2. Página de cada Startup
+Objetivo: Ficha centralizada y dinámica de cada empresa.
+
+Secciones:
+
+Información general:
+
+Nombre, sector, modelo de negocio, estado (preseed, seed, etc.), país, contacto.
+
+Documentos subidos:
+
+Pitch deck, plan financiero, contrato SAFE, reportes, notas de reuniones.
+
+Extracción y vectorización automática.
+
+Métricas clave:
+
+ARR, MRR, CAC, LTV, churn, runway, etc. (importadas de Excel o API).
+
+Comparables históricos del portfolio.
+
+Notas y actividades:
+
+Comentarios, tareas, próximas reuniones.
+
+Sistema de tagging interno.
+
+Análisis automático (LLM-based):
+
+Resumen del pitch deck.
+
+Red flags detectados.
+
+Preguntas para due diligence.
+
+Evaluación de equipo, producto, mercado, finanzas.
+
+Resumen ejecutivo generado.
+
+Memo de inversión automatizado (editable).
+
+🔎 3. Módulo de Research (tipo Deep Research)
+Objetivo: Análisis automatizado del mercado y competidores.
+
+Funcionalidades:
+
+Búsqueda automática en internet, bases de datos y papers.
+
+Generación de análisis sectorial con gráficos.
+
+Identificación de competidores por región y segmento.
+
+Tracking de noticias y funding rounds de la competencia.
+
+Conexión con Crunchbase, PitchBook, Dealroom (si se quiere).
+
+📊 4. Comparador de startups
+Objetivo: Tabla editable/comparativa de empresas.
+
+Funcionalidades:
+
+Selección de varias startups y comparación por métricas, stage o tesis.
+
+Visualizaciones interactivas (gráficas, radar charts, etc.).
+
+Filtros por vertical, región, tipo de modelo (SaaS, Marketplace, etc.).
+
+💬 5. Chat / Asistente IA
+Objetivo: Interacción natural con la base de datos vectorizada y tareas.
+
+Funcionalidades:
+
+Puedes preguntarle cosas como:
+
+“¿Qué startups tienen runway menor a 6 meses?”
+
+“Genera un resumen de las notas de la reunión de X.”
+
+“Haz una inversión memo de la empresa con estos documentos.”
+
+Busca dentro de todos los documentos vectorizados.
+
+Resume o compara startups automáticamente.
+
+📥 6. Carga inteligente de documentos
+Objetivo: Proceso guiado para subir información estructurada.
+
+Funcionalidades:
+
+Arrastrar pitchdeck, plan financiero, etc.
+
+OCR si es PDF escaneado.
+
+Clasificación automática de documentos.
+
+Extracción automática de contenido clave (fechas, cifras, milestones).
+
+Implementación actual:
+- Los archivos seleccionados se suben a Supabase Storage (bucket 'documents').
+- Se registra la metadata del archivo (nombre, tipo, url, fecha) en la tabla 'documents' de la base de datos.
+- La interfaz de carga muestra estados de carga, error y éxito para mejorar la experiencia de usuario.
+- Ahora se pueden subir documentos directamente desde la pestaña 'Documentos' de la página de cada startup. Los archivos quedan automáticamente asociados a la startup correspondiente.
+- Tras la carga, la lista de documentos puede refrescarse para mostrar los nuevos archivos subidos.
+- Los documentos se procesan automáticamente con IA tras la carga, generando resumen, KPIs y red flags que se almacenan en la base de datos.
+- En la visualización de documentos, se puede expandir cada documento para ver los resultados del análisis IA (resumen, KPIs, red flags).
+- La pestaña 'Métricas' permite editar y guardar métricas clave (ARR, MRR, CAC, LTV, churn, runway, etc.) para cada startup.
+- La pestaña 'Notas y Actividades' permite crear, ver y eliminar notas internas con fecha y hora.
+- El comparador de startups permite seleccionar múltiples empresas y comparar sus métricas en una tabla interactiva.
+- El buscador inteligente (IA Chat) permite hacer preguntas sobre startups, documentos y métricas con una interfaz de chat.
+
+🧠 7. Tesis de inversión y conocimiento interno
+Objetivo: Base de conocimiento y aprendizajes del fondo.
+
+Funcionalidades:
+
+Guardar criterios de evaluación anteriores.
+
+Ejemplos de buenas y malas prácticas.
+
+Análisis históricos de exits/fallos.
+
+Acceso vectorizado y consultable.
+
+🗃️ 8. Repositorio vectorizado y explorador de embeddings
+Objetivo: Acceso técnico a la base de conocimiento en forma vectorizada.
+
+Funcionalidades:
+
+Motor semántico para búsqueda entre documentos y startups.
+
+Preguntas tipo: “Encuentra startups con producto aún sin PMF” o “con churn > 10%”.
+
+Compatible con embeddings de OpenAI o similares.
+
+
+ARQUITECTURA GENERAL (MVP)
+Frontend: Next.js (React) – desplegado en Vercel
+Backend/API: Node.js/Express o funciones serverless – desplegado en Railway
+Base de datos: PostgreSQL – alojado en Supabase
+Almacenamiento de archivos: Supabase Storage
+Procesamiento IA: LLM (OpenAI o Claude) + embeddings
+Motor semántico (RAG): Vector Store (pgvector en Supabase)
+
+🌐 PÁGINAS PRINCIPALES
+1. Dashboard
+Listado de startups cargadas.
+
+Filtros: sector, estado (pre-seed, seed...), vertical, país.
+
+Botón para añadir nueva startup.
+
+Frameworks recomendados:
+
+React + Tailwind (UI)
+
+Zustand para gestión de estado
+
+2. Página de Startup
+Ruta: /startup/[id]
+
+Secciones dentro de la página:
+
+🧾 Resumen general: nombre, vertical, fase, país, contacto, descripción.
+
+📁 Documentos: upload de pitchdeck, plan financiero, etc.
+
+Visualización en PDF.
+
+Extracción automática de texto.
+
+📊 Métricas: tabla editable (MRR, CAC, LTV, runway...).
+
+🧠 Análisis IA:
+
+Resumen del pitchdeck.
+
+Memo generada automáticamente (editable).
+
+Red flags detectados por el agente.
+
+Funcionalidades IA:
+
+Clasificación automática del tipo de documento al subirlo.
+
+Parsing automático (via LLM) y extracción de insights.
+
+Conversaciones sobre la empresa (“¿Cuál es su runway?”, “Hazme el memo de inversión”).
+
+3. Carga Inteligente
+Ruta: /upload
+
+Upload manual de archivos .pdf, .pptx, .csv, .xls, .docx, .txt.
+
+Procesamiento con OCR si es necesario.
+
+Almacenamiento en Supabase Storage.
+
+Vectorización y guardado en Supabase + pgvector.
+
+4. Buscador Inteligente (IA Chat o Panel lateral)
+Ruta: /explorer o integrado como widget lateral
+
+Preguntas tipo:
+
+“Muéstrame las startups B2B SaaS con churn alto.”
+
+“Genera un memo de la startup X.”
+
+Busca en embeddings + datos estructurados.
+
+Interfaz tipo chat o panel lateral con prompts rápidos.
+
+5. Comparador
+Ruta: /compare
+
+Selección múltiple de startups.
+
+Tabla comparativa editable.
+
+Visualización con gráficos (runway, MRR, burn rate, etc.).
+
+🧠 FUNCIONALIDADES IA
+a) Procesamiento de documentos
+Extracción de texto con pdf-parse, mammoth, docx, papaparse o tesseract.js (para OCR).
+
+Envío del contenido al LLM para:
+
+Resumen
+
+Extracción de KPIs
+
+Red flags
+
+Clasificación semántica
+
+b) Vectorización y RAG
+Embeddings: OpenAI o HuggingFace (text-embedding-ada-002)
+
+Guardado: pgvector + Supabase
+
+Búsqueda semántica para chat o filtrado inteligente
+
+
+
+ Página de Startup (/startup/[id])
+Esta será la página principal de trabajo con cada startup. Tendrá varias secciones o pestañas internas, todo integrado en una única vista.
+
+🧩 Estructura por secciones (tabs o accordion)
+1. Información general
+Nombre, vertical, país, fase (pre-seed, seed, etc.)
+
+Descripción corta
+
+Enlace al sitio web
+
+Estado: en análisis / invertida / descartada
+
+2. Subida de documentos (núcleo de IA)
+📌 Todo documento se sube aquí y se procesa automáticamente.
+
+Tipos admitidos:
+
+.pdf, .pptx, .xlsx, .csv, .docx, .txt
+
+Funcionalidades:
+
+➕ Botón para subir archivo
+
+Almacena en Supabase Storage
+
+Crea una entrada en Supabase DB (documentos) vinculada a la startup
+
+⚙️ Procesamiento automático:
+
+Extrae texto
+
+Clasifica tipo de documento
+
+Llama al LLM para generar resumen, KPIs y red flags
+
+Vectoriza y guarda en pgvector para consulta futura
+
+Vista de documentos:
+
+Lista de documentos con su tipo detectado
+
+Visualización rápida (visor PDF/doc integrado)
+
+Resultados IA junto a cada documento:
+
+✔️ Resumen automático
+
+📊 KPIs detectados
+
+⚠️ Red flags sugeridos
+
+3. Métricas estructuradas
+Tabla editable (MRR, CAC, LTV, churn, burn rate, runway…)
+
+Se autocompletan si se detectan en los documentos
+
+Se pueden usar en comparativas entre startups
+
+4. Análisis con IA (sección resumen)
+Generado automáticamente al subir los documentos:
+
+🧠 Resumen ejecutivo de la startup
+
+📌 Memo de inversión (editable)
+
+🔍 Preguntas recomendadas para due diligence
+
+💬 Chat de consulta específico a esa startup
+
+5. Notas internas y actividades
+Campo de texto libre o markdown para notas de reunión
+
+Lista de tareas por hacer (opcional)
+
+Sistema de etiquetas (tipo: equipo fuerte, producto en beta, etc.)
+
+
+-----------------------------+
+Notas de implementación y mejoras
+-----------------------------+
+
+- El dashboard muestra la lista de startups de forma dinámica, obtenida desde Supabase, no con datos estáticos.
+- Se recomienda implementar siempre estados de carga (loading) y error en las interfaces que obtienen datos externos.
+- El proyecto utiliza TypeScript y convenciones de Next.js 13+, como el uso del patrón de hijo para el componente Link.
+- Todas las claves de API y URLs de bases de datos deben gestionarse mediante variables de entorno (.env) para mayor seguridad y flexibilidad.
+- En la pestaña 'Documentos' de la página de cada startup se listan los documentos subidos asociados a esa startup, mostrando nombre, tipo y enlace para ver/descargar.
+- Se gestionan estados de carga y error en la visualización de documentos para una mejor experiencia de usuario.
+- Se ha implementado búsqueda semántica de empresas y documentos usando embeddings y pgvector. Permite encontrar empresas similares, competidores o proveedores ya analizados, clasificando por contexto y similitud.
+- El endpoint serverless /api/semantic-search vectoriza la consulta y busca los top 5 resultados más parecidos usando una función RPC en Supabase.
+- Se ha implementado un sistema completo de análisis de inversión con:
+  * Endpoint `/api/analyze-startup` que genera análisis completo con resumen ejecutivo, pros/contras y puntos pendientes
+  * Endpoint `/api/research-market` para análisis automático de mercado, competidores y tamaño de mercado
+  * Endpoint `/api/chat-analysis` para chatbot inteligente que mantiene contexto de la startup
+  * Componente `StartupAnalysis` con interfaz completa para análisis, research y chat
+  * Nueva pestaña "Análisis Completo" en la página de startup con tres secciones:
+    - Análisis de inversión (resumen ejecutivo, pros/contras, valoración)
+    - Research de mercado (TAM/SAM/SOM, competidores, tendencias)
+    - Chatbot IA para análisis continuo y actualización de memos
+  * El chatbot permite conversaciones sobre análisis de inversión, actualización de memos, research de mercado, preguntas de due diligence y comparaciones con el portfolio.
+
+## 🆕 NUEVAS FUNCIONALIDADES IMPLEMENTADAS
+
+### Análisis Continuo e Iterativo
+- **Auto-actualización**: El análisis se actualiza automáticamente cada 30 segundos cuando está habilitada la opción
+- **Triggers automáticos**: Se activa cuando se suben nuevos documentos, se actualizan métricas o se añaden notas
+- **Notificaciones**: Sistema de alertas para informar cuando el análisis se actualiza automáticamente
+- **Historial completo**: Registro de todos los análisis realizados con información del trigger que los generó
+
+### Descarga de Memos
+- **Formato PDF**: Descarga del memo de análisis en formato texto (compatible con PDF)
+- **Formato Word**: Descarga del memo en formato compatible con Microsoft Word
+- **Contenido consolidado**: Incluye información de startup, documentos, métricas y notas
+- **Generación automática**: El memo se genera dinámicamente con la información más reciente
+
+### Base de Datos Mejorada
+- **Nueva tabla `analysis_history`**: Almacena historial completo de análisis
+- **Campos**: startup_id, analysis_type, content, trigger, created_at
+- **Tipos de análisis**: investment, market_research, chat
+- **Triggers**: manual, document_upload, metrics_update, note_added, chat_interaction
+
+### Nuevos Endpoints API
+- **`/api/download-memo`**: Genera y descarga memos en PDF/Word
+- **`/api/analysis-history`**: Gestiona el historial de análisis (GET/POST)
+
+### Interfaz Mejorada
+- **Checkbox auto-actualización**: Control para habilitar/deshabilitar actualización automática
+- **Botones de descarga**: PDF y Word con estados de carga
+- **Historial visual**: Muestra los últimos 5 análisis con tipo y trigger
+- **Notificaciones**: Alertas temporales cuando se actualiza automáticamente
+
