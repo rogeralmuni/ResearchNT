@@ -3,6 +3,11 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import DocumentUploader from '../../components/DocumentUploader';
 import StartupAnalysis from '../../components/StartupAnalysis';
+import { Card, CardContent, CardHeader } from '../../components/ui/Card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import Badge from '../../components/ui/Badge';
 
 interface Document {
   id: string;
@@ -33,6 +38,37 @@ interface Note {
   content: string;
   created_at?: string;
 }
+
+// Tab icons
+const InfoIcon = () => (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const DocumentIcon = () => (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
+
+const ChartIcon = () => (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+  </svg>
+);
+
+const AnalysisIcon = () => (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+  </svg>
+);
+
+const NotesIcon = () => (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+);
 
 export default function StartupPage() {
   const router = useRouter();
@@ -156,7 +192,7 @@ export default function StartupPage() {
     }
   };
 
-  const saveNote = async () => {
+  const addNote = async () => {
     if (!newNote.trim()) return;
     
     setSavingNote(true);
@@ -168,13 +204,14 @@ export default function StartupPage() {
         .insert([{
           startup_id: id,
           content: newNote.trim(),
+          created_at: new Date().toISOString()
         }])
         .select()
         .single();
       
       if (error) throw error;
       
-      setNotes((prev: Note[]) => [data, ...prev]);
+      setNotes(prev => [data, ...prev]);
       setNewNote('');
     } catch (error: any) {
       setErrorNotes(error.message);
@@ -183,265 +220,373 @@ export default function StartupPage() {
     }
   };
 
-  const deleteNote = async (noteId: string) => {
-    try {
-      const { error } = await supabase
-        .from('notes')
-        .delete()
-        .eq('id', noteId);
-      
-      if (error) throw error;
-      
-      setNotes((prev: Note[]) => prev.filter((note: Note) => note.id !== noteId));
-    } catch (error: any) {
-      setErrorNotes(error.message);
-    }
-  };
-
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">Startup #{id}</h1>
-      <div className="flex space-x-4 mb-4">
-        <button className={`px-4 py-2 rounded ${tab === 'info' ? 'bg-blue-200' : 'bg-gray-200'}`} onClick={() => setTab('info')}>Información General</button>
-        <button className={`px-4 py-2 rounded ${tab === 'docs' ? 'bg-blue-200' : 'bg-gray-200'}`} onClick={() => setTab('docs')}>Documentos</button>
-        <button className={`px-4 py-2 rounded ${tab === 'metrics' ? 'bg-blue-200' : 'bg-gray-200'}`} onClick={() => setTab('metrics')}>Métricas</button>
-        <button className={`px-4 py-2 rounded ${tab === 'analysis' ? 'bg-blue-200' : 'bg-gray-200'}`} onClick={() => setTab('analysis')}>Análisis Completo</button>
-        <button className={`px-4 py-2 rounded ${tab === 'ia' ? 'bg-blue-200' : 'bg-gray-200'}`} onClick={() => setTab('ia')}>Análisis IA</button>
-        <button className={`px-4 py-2 rounded ${tab === 'notes' ? 'bg-blue-200' : 'bg-gray-200'}`} onClick={() => setTab('notes')}>Notas y Actividades</button>
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Startup #{id}</h1>
+          <p className="text-gray-600 mt-1">Gestión completa de la startup</p>
+        </div>
+        <Badge variant="primary">En análisis</Badge>
       </div>
-      <div className="border p-4 rounded bg-white shadow">
-        {tab === 'info' && <p>Información general de la startup. (Próximamente)</p>}
-        {tab === 'docs' && (
-          <div>
-            <DocumentUploader startupId={typeof id === 'string' ? id : undefined} />
-            <h2 className="text-lg font-bold mb-2 mt-6">Documentos subidos</h2>
-            {loadingDocs && <p>Cargando documentos...</p>}
-            {errorDocs && <p className="text-red-600">Error: {errorDocs}</p>}
-            {!loadingDocs && documents.length === 0 && <p>No hay documentos para esta startup.</p>}
-            <ul className="space-y-2">
-              {documents.map((doc: Document) => (
-                <li key={doc.id} className="border rounded p-2">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <span className="font-semibold">{doc.name}</span> <span className="text-gray-500">({doc.type})</span>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => toggleDocExpansion(doc.id)}
-                        className="text-blue-600 underline"
-                      >
-                        {expandedDocs.has(doc.id) ? 'Ocultar IA' : 'Ver IA'}
-                      </button>
-                      <a
-                        href={doc.url ? supabase.storage.from('documents').getPublicUrl(doc.url).data.publicUrl : '#'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 underline"
-                      >
-                        Ver/Descargar
-                      </a>
-                    </div>
+
+      {/* Tabs Navigation */}
+      <Tabs defaultValue="info" onValueChange={(value) => setTab(value as any)}>
+        <TabsList className="mb-8">
+          <TabsTrigger value="info" icon={<InfoIcon />}>
+            Información
+          </TabsTrigger>
+          <TabsTrigger value="docs" icon={<DocumentIcon />}>
+            Documentos
+          </TabsTrigger>
+          <TabsTrigger value="metrics" icon={<ChartIcon />}>
+            Métricas
+          </TabsTrigger>
+          <TabsTrigger value="analysis" icon={<AnalysisIcon />}>
+            Análisis Completo
+          </TabsTrigger>
+          <TabsTrigger value="ia" icon={<AnalysisIcon />}>
+            Análisis IA
+          </TabsTrigger>
+          <TabsTrigger value="notes" icon={<NotesIcon />}>
+            Notas
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Info Tab */}
+        <TabsContent value="info">
+          <Card>
+            <CardHeader>
+              <h2 className="text-xl font-semibold text-gray-900">Información General</h2>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <InfoIcon />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Información en desarrollo</h3>
+                <p className="text-gray-600">
+                  Esta sección contendrá información detallada sobre la startup, incluyendo descripción, equipo, y datos generales.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Documents Tab */}
+        <TabsContent value="docs">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <h2 className="text-xl font-semibold text-gray-900">Subir Documentos</h2>
+              </CardHeader>
+              <CardContent>
+                <DocumentUploader startupId={typeof id === 'string' ? id : undefined} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-semibold text-gray-900">Documentos Subidos</h2>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRefreshDocs((r: number) => r + 1)}
+                  >
+                    Refrescar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingDocs && (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="animate-pulse bg-gray-200 rounded-lg h-16"></div>
+                    ))}
                   </div>
-                  {expandedDocs.has(doc.id) && (
-                    <div className="mt-2 p-2 bg-gray-50 rounded">
-                      {doc.summary && (
-                        <div className="mb-2">
-                          <h4 className="font-semibold text-sm">Resumen:</h4>
-                          <p className="text-sm">{doc.summary}</p>
+                )}
+
+                {errorDocs && (
+                  <div className="bg-error-50 border border-error-200 rounded-lg p-4">
+                    <p className="text-error-600">Error: {errorDocs}</p>
+                  </div>
+                )}
+
+                {!loadingDocs && documents.length === 0 && (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <DocumentIcon />
+                    </div>
+                    <p className="text-gray-600">No hay documentos para esta startup.</p>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {documents.map((doc: Document) => (
+                    <div key={doc.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900">{doc.name}</h3>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <Badge variant="gray" size="sm">{doc.type}</Badge>
+                            <span className="text-sm text-gray-500">
+                              {new Date(doc.uploaded_at).toLocaleDateString()}
+                            </span>
+                          </div>
                         </div>
-                      )}
-                      {doc.kpis && (
-                        <div className="mb-2">
-                          <h4 className="font-semibold text-sm">KPIs:</h4>
-                          <p className="text-sm">{doc.kpis}</p>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleDocExpansion(doc.id)}
+                          >
+                            {expandedDocs.has(doc.id) ? 'Ocultar IA' : 'Ver IA'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (doc.url) {
+                                window.open(
+                                  supabase.storage.from('documents').getPublicUrl(doc.url).data.publicUrl,
+                                  '_blank'
+                                );
+                              }
+                            }}
+                          >
+                            Ver
+                          </Button>
                         </div>
-                      )}
-                      {doc.red_flags && (
-                        <div className="mb-2">
-                          <h4 className="font-semibold text-sm text-red-600">Red Flags:</h4>
-                          <p className="text-sm text-red-600">{doc.red_flags}</p>
+                      </div>
+
+                      {expandedDocs.has(doc.id) && (
+                        <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3">
+                          {doc.summary && (
+                            <div>
+                              <h4 className="font-medium text-gray-900 mb-2">Resumen:</h4>
+                              <p className="text-sm text-gray-700">{doc.summary}</p>
+                            </div>
+                          )}
+                          {doc.kpis && (
+                            <div>
+                              <h4 className="font-medium text-gray-900 mb-2">KPIs:</h4>
+                              <p className="text-sm text-gray-700">{doc.kpis}</p>
+                            </div>
+                          )}
+                          {doc.red_flags && (
+                            <div>
+                              <h4 className="font-medium text-error-700 mb-2">Red Flags:</h4>
+                              <p className="text-sm text-error-600">{doc.red_flags}</p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-            <button
-              className="mt-4 px-3 py-1 bg-gray-200 rounded"
-              onClick={() => setRefreshDocs((r: number) => r + 1)}
-            >
-              Refrescar documentos
-            </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        )}
-        {tab === 'metrics' && (
-          <div>
-            <h2 className="text-lg font-bold mb-4">Métricas de la startup</h2>
-            {loadingMetrics && <p>Cargando métricas...</p>}
-            {errorMetrics && <p className="text-red-600">Error: {errorMetrics}</p>}
-            {!loadingMetrics && (
-              <div className="space-y-4">
+        </TabsContent>
+
+        {/* Continue with remaining tabs in the existing code structure... */}
+        
+        {/* Metrics Tab */}
+        <TabsContent value="metrics">
+          <Card>
+            <CardHeader>
+              <h2 className="text-xl font-semibold text-gray-900">Métricas de la Startup</h2>
+            </CardHeader>
+            <CardContent>
+              {loadingMetrics && (
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">ARR (Annual Recurring Revenue)</label>
-                    <input
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="animate-pulse bg-gray-200 rounded-lg h-16"></div>
+                  ))}
+                </div>
+              )}
+
+              {errorMetrics && (
+                <div className="bg-error-50 border border-error-200 rounded-lg p-4">
+                  <p className="text-error-600">Error: {errorMetrics}</p>
+                </div>
+              )}
+
+              {!loadingMetrics && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="ARR (Annual Recurring Revenue)"
                       type="number"
                       value={metrics.arr || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleMetricChange('arr', e.target.value)}
-                      className="w-full p-2 border rounded"
+                      onChange={(e) => handleMetricChange('arr', e.target.value)}
                       placeholder="0"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">MRR (Monthly Recurring Revenue)</label>
-                    <input
+                    <Input
+                      label="MRR (Monthly Recurring Revenue)"
                       type="number"
                       value={metrics.mrr || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleMetricChange('mrr', e.target.value)}
-                      className="w-full p-2 border rounded"
+                      onChange={(e) => handleMetricChange('mrr', e.target.value)}
                       placeholder="0"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">CAC (Customer Acquisition Cost)</label>
-                    <input
+                    <Input
+                      label="CAC (Customer Acquisition Cost)"
                       type="number"
                       value={metrics.cac || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleMetricChange('cac', e.target.value)}
-                      className="w-full p-2 border rounded"
+                      onChange={(e) => handleMetricChange('cac', e.target.value)}
                       placeholder="0"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">LTV (Lifetime Value)</label>
-                    <input
+                    <Input
+                      label="LTV (Customer Lifetime Value)"
                       type="number"
                       value={metrics.ltv || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleMetricChange('ltv', e.target.value)}
-                      className="w-full p-2 border rounded"
+                      onChange={(e) => handleMetricChange('ltv', e.target.value)}
                       placeholder="0"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Churn Rate (%)</label>
-                    <input
+                    <Input
+                      label="Churn Rate (%)"
                       type="number"
                       value={metrics.churn || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleMetricChange('churn', e.target.value)}
-                      className="w-full p-2 border rounded"
+                      onChange={(e) => handleMetricChange('churn', e.target.value)}
                       placeholder="0"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Runway (meses)</label>
-                    <input
+                    <Input
+                      label="Runway (meses)"
                       type="number"
                       value={metrics.runway || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleMetricChange('runway', e.target.value)}
-                      className="w-full p-2 border rounded"
+                      onChange={(e) => handleMetricChange('runway', e.target.value)}
                       placeholder="0"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Burn Rate (mensual)</label>
-                    <input
+                    <Input
+                      label="Burn Rate"
                       type="number"
                       value={metrics.burn_rate || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleMetricChange('burn_rate', e.target.value)}
-                      className="w-full p-2 border rounded"
+                      onChange={(e) => handleMetricChange('burn_rate', e.target.value)}
                       placeholder="0"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Número de Clientes</label>
-                    <input
+                    <Input
+                      label="Customer Count"
                       type="number"
                       value={metrics.customer_count || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleMetricChange('customer_count', e.target.value)}
-                      className="w-full p-2 border rounded"
+                      onChange={(e) => handleMetricChange('customer_count', e.target.value)}
                       placeholder="0"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Crecimiento de Ingresos (%)</label>
-                    <input
-                      type="number"
-                      value={metrics.revenue_growth || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleMetricChange('revenue_growth', e.target.value)}
-                      className="w-full p-2 border rounded"
-                      placeholder="0"
-                    />
+
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={saveMetrics}
+                      loading={savingMetrics}
+                      disabled={savingMetrics}
+                    >
+                      Guardar Métricas
+                    </Button>
                   </div>
                 </div>
-                <button
-                  onClick={saveMetrics}
-                  disabled={savingMetrics}
-                  className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
-                >
-                  {savingMetrics ? 'Guardando...' : 'Guardar Métricas'}
-                </button>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Analysis Tab */}
+        <TabsContent value="analysis">
+          <StartupAnalysis startupId={typeof id === 'string' ? id : undefined} />
+        </TabsContent>
+
+        {/* IA Tab */}
+        <TabsContent value="ia">
+          <Card>
+            <CardHeader>
+              <h2 className="text-xl font-semibold text-gray-900">Análisis con IA</h2>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AnalysisIcon />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Análisis IA en desarrollo</h3>
+                <p className="text-gray-600">
+                  Esta funcionalidad proporcionará análisis automático mediante inteligencia artificial.
+                </p>
               </div>
-            )}
-          </div>
-        )}
-        {tab === 'analysis' && (
-          <StartupAnalysis startupId={typeof id === 'string' ? id : ''} startup={{ name: 'Startup', sector: 'Tech', country: 'Spain', stage: 'Seed' }} />
-        )}
-        {tab === 'ia' && <p>Análisis IA de la startup. (Próximamente)</p>}
-        {tab === 'notes' && (
-          <div>
-            <h2 className="text-lg font-bold mb-4">Notas y Actividades</h2>
-            {loadingNotes && <p>Cargando notas...</p>}
-            {errorNotes && <p className="text-red-600">Error: {errorNotes}</p>}
-            {!loadingNotes && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Nueva nota:</label>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Notes Tab */}
+        <TabsContent value="notes">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <h2 className="text-xl font-semibold text-gray-900">Agregar Nota</h2>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
                   <textarea
                     value={newNote}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewNote(e.target.value)}
-                    className="w-full p-2 border rounded h-24"
-                    placeholder="Escribe tu nota aquí..."
+                    onChange={(e) => setNewNote(e.target.value)}
+                    placeholder="Escribe una nota sobre esta startup..."
+                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200"
+                    rows={4}
                   />
-                  <button
-                    onClick={saveNote}
-                    disabled={savingNote || !newNote.trim()}
-                    className="mt-2 px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
-                  >
-                    {savingNote ? 'Guardando...' : 'Guardar Nota'}
-                  </button>
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={addNote}
+                      loading={savingNote}
+                      disabled={savingNote || !newNote.trim()}
+                    >
+                      Agregar Nota
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold mb-2">Notas anteriores:</h3>
-                  {notes.length === 0 ? (
-                    <p className="text-gray-500">No hay notas para esta startup.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {notes.map((note: Note) => (
-                        <div key={note.id} className="border rounded p-3">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="text-sm text-gray-500">
-                              {note.created_at ? new Date(note.created_at).toLocaleString() : ''}
-                            </span>
-                            <button
-                              onClick={() => note.id && deleteNote(note.id)}
-                              className="text-red-600 text-sm underline"
-                            >
-                              Eliminar
-                            </button>
-                          </div>
-                          <p className="whitespace-pre-wrap">{note.content}</p>
-                        </div>
-                      ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <h2 className="text-xl font-semibold text-gray-900">Notas y Actividades</h2>
+              </CardHeader>
+              <CardContent>
+                {loadingNotes && (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="animate-pulse bg-gray-200 rounded-lg h-20"></div>
+                    ))}
+                  </div>
+                )}
+
+                {errorNotes && (
+                  <div className="bg-error-50 border border-error-200 rounded-lg p-4">
+                    <p className="text-error-600">Error: {errorNotes}</p>
+                  </div>
+                )}
+
+                {!loadingNotes && notes.length === 0 && (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <NotesIcon />
                     </div>
-                  )}
+                    <p className="text-gray-600">No hay notas para esta startup.</p>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {notes.map((note: Note) => (
+                    <div key={note.id} className="border border-gray-200 rounded-lg p-4">
+                      <p className="text-gray-900 mb-2">{note.content}</p>
+                      <p className="text-sm text-gray-500">
+                        {note.created_at && new Date(note.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            )}
+              </CardContent>
+            </Card>
           </div>
-        )}
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 } 
