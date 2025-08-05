@@ -8,19 +8,24 @@ create table startups (
   description text,
   website text,
   status text, -- en análisis, invertida, descartada
+  executive_summary text,
+  team_info text,
+  pros text,
+  cons text,
+  pending_points text,
+  memo text,
+  summary text, -- resumen generado automáticamente por IA
+  pending_tasks text, -- documentos, tareas pendientes y puntos por clarificar
   created_at timestamp with time zone default now()
 );
 
--- Documents table
+-- Documents table (simplified)
 create table documents (
   id uuid primary key default gen_random_uuid(),
   startup_id uuid references startups(id),
   name text,
   type text, -- pitchdeck, plan financiero, etc.
   url text,
-  summary text,
-  kpis jsonb,
-  red_flags text,
   uploaded_at timestamp with time zone default now()
 );
 
@@ -37,31 +42,70 @@ create table metrics (
   updated_at timestamp with time zone default now()
 );
 
--- Notes table
-create table notes (
+-- Competitors table
+create table competitors (
   id uuid primary key default gen_random_uuid(),
   startup_id uuid references startups(id),
-  content text,
-  created_at timestamp with time zone default now()
+  competitor_name text not null,
+  description text,
+  founded_year integer,
+  employee_count integer,
+  funding_raised numeric,
+  revenue numeric,
+  linkedin_url text,
+  website_url text,
+  market_segment text,
+  main_features text,
+  similarity_score numeric, -- score de similitud con la startup principal
+  is_external boolean default true, -- true si es competidor externo, false si está en la plataforma
+  external_startup_id uuid references startups(id), -- si está en la plataforma
+  research_status text default 'pending', -- pending, researching, completed
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
 );
 
--- Users table (optional, for future auth)
-create table users (
-  id uuid primary key default gen_random_uuid(),
-  email text unique not null,
-  name text,
-  created_at timestamp with time zone default now()
-);
-
--- Analysis History table for continuous and iterative analysis
-create table analysis_history (
+-- Market analysis table (simplified for OpenAI deep research)
+create table market_analysis (
   id uuid primary key default gen_random_uuid(),
   startup_id uuid references startups(id),
-  analysis_type text not null, -- 'investment', 'market_research', 'chat'
-  content text not null,
-  trigger text default 'manual', -- 'manual', 'document_upload', 'metrics_update', 'note_added'
+  research_report text, -- The complete market research report from OpenAI
+  research_status text default 'pending', -- pending, researching, completed
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
+);
+
+-- Competitors research table (for storing research reports)
+create table competitors_research (
+  id uuid primary key default gen_random_uuid(),
+  startup_id uuid references startups(id),
+  research_report text, -- The complete competitive research report from OpenAI
+  research_status text default 'pending', -- pending, researching, completed
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
+);
+
+-- Chat messages for market analysis and competitors
+create table chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  startup_id uuid references startups(id),
+  tab_type text not null, -- 'market' or 'competitors'
+  message_text text not null,
+  is_user boolean not null,
+  timestamp timestamp with time zone default now()
+);
+
+-- Market segments table for better categorization
+create table market_segments (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  description text,
+  parent_segment_id uuid references market_segments(id),
   created_at timestamp with time zone default now()
 );
 
--- Add embedding column to documents table for vector search
-alter table documents add column embedding vector(1536); 
+-- Startup market segments relationship
+create table startup_market_segments (
+  startup_id uuid references startups(id),
+  segment_id uuid references market_segments(id),
+  primary key (startup_id, segment_id)
+); 

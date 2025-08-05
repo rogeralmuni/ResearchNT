@@ -1,28 +1,41 @@
 {
-  "name": "vc-startup-platform",
+  "name": "startup-analysis-platform",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:setup": "node scripts/setup-database.js",
+    "db:migrate": "node scripts/migrate-database.js",
+    "python:install": "pip install -r requirements.txt",
+    "python:start": "python python_research_service.py",
+    "python:test": "python test_python_service.py",
+    "start:all": "concurrently \"npm run dev\" \"npm run python:start\""
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.5",
-    "next": "13.4.19",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "zustand": "4.4.1",
-    "openai": "4.20.0",
-    "tailwindcss": "3.4.1",
-    "autoprefixer": "10.4.14",
-    "postcss": "8.4.24"
+    "better-sqlite3": "^12.2.0",
+    "next": "14.0.0",
+    "openai": "^4.104.0",
+    "react": "^18",
+    "react-dom": "^18",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "typescript": "5.2.2",
-    "@types/node": "20.4.2",
-    "@types/react": "18.2.14",
-    "@types/react-dom": "18.2.7"
+    "@tailwindcss/postcss": "^4.1.11",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/uuid": "^9.0.7",
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^8.2.2",
+    "eslint": "^8",
+    "eslint-config-next": "14.0.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.11",
+    "types": "^0.0.1",
+    "typescript": "^5"
   }
-} 
+}

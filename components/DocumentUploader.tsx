@@ -1,76 +1,33 @@
-import { useRef, useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { useState } from 'react';
 
 interface DocumentUploaderProps {
   startupId?: string;
+  onUploadComplete?: () => void;
 }
 
-export default function DocumentUploader({ startupId }: DocumentUploaderProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export default function DocumentUploader({ startupId, onUploadComplete }: DocumentUploaderProps) {
   const [uploading, setUploading] = useState(false);
-  const [processing, setProcessing] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [vectorizing, setVectorizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   async function extractTextFromFile(file: File): Promise<string> {
-    if (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type === 'application/msword') {
-      setExtracting(true);
-      try {
-        const reader = new FileReader();
-        return await new Promise((resolve, reject) => {
-          reader.onload = async (e) => {
-            try {
-              const base64 = (e.target?.result as string)?.split(',')[1];
-              const res = await fetch('/api/extract-text', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fileBase64: base64, fileType: file.type }),
-              });
-              if (!res.ok) throw new Error('Error extrayendo texto');
-              const data = await res.json();
-              resolve(data.text);
-            } catch (err) {
-              reject(err);
-            } finally {
-              setExtracting(false);
-            }
-          };
-          reader.onerror = (err) => {
-            setExtracting(false);
-            reject(err);
-          };
-          reader.readAsDataURL(file);
-        });
-      } catch (err) {
-        setExtracting(false);
-        throw err;
-      }
-    } else if (file.type.startsWith('text/')) {
-      // Plain text file
-      return await file.text();
-    } else {
-      return '';
-    }
-  }
-
-  async function vectorizeText(text: string): Promise<number[] | null> {
-    setVectorizing(true);
+    setExtracting(true);
     try {
-      const res = await fetch('/api/vectorize-text', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      });
-      if (!res.ok) throw new Error('Error vectorizando texto');
-      const data = await res.json();
-      return data.embedding;
+      if (file.type === 'application/pdf') {
+        // For PDF files, we'll just return a placeholder since we removed the extract-text API
+        return `PDF Document: ${file.name}`;
+      } else if (file.type.startsWith('text/')) {
+        // Plain text file
+        return await file.text();
+      } else {
+        return '';
+      }
     } catch (err) {
-      setError('Error vectorizando el texto');
-      return null;
+      setExtracting(false);
+      throw err;
     } finally {
-      setVectorizing(false);
+      setExtracting(false);
     }
   }
 
@@ -86,115 +43,145 @@ export default function DocumentUploader({ startupId }: DocumentUploaderProps) {
 
       const aiResults = await response.json();
 
-      // Update document with AI results
-      const { error: updateError } = await supabase
-        .from('documents')
-        .update({
+      // Update document with AI results using local API
+      const updateResponse = await fetch(`/api/documents/${documentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           summary: aiResults.summary,
           kpis: aiResults.kpis,
           red_flags: aiResults.redFlags,
-        })
-        .eq('id', documentId);
+        }),
+      });
 
-      if (updateError) throw updateError;
+      if (!updateResponse.ok) throw new Error('Error updating document');
     } catch (error) {
       console.error('Error processing document with AI:', error);
     }
   }
 
+  async function uploadFile(file: File): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const base64 = (e.target?.result as string)?.split(',')[1];
+          const response = await fetch('/api/upload-document', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              startupId,
+              fileName: file.name,
+              fileType: file.type,
+              fileBase64: base64,
+            }),
+          });
+
+          if (!response.ok) throw new Error('Error uploading file');
+          const uploadResult = await response.json();
+          resolve(uploadResult);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = () => reject(new Error('Error reading file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
   async function handleUpload() {
-    setError(null);
-    setSuccess(null);
-    const files = fileInputRef.current?.files;
-    if (!files || files.length === 0) {
-      setError('Selecciona al menos un archivo.');
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    const file = fileInput?.files?.[0];
+    
+    if (!file) {
+      setError('Please select a file');
       return;
     }
-    setUploading(true);
-    for (const file of Array.from(files)) {
-      const filePath = `${Date.now()}_${file.name}`;
-      // Upload to Supabase Storage (bucket: 'documents')
-      const { data: storageData, error: storageError } = await supabase.storage
-        .from('documents')
-        .upload(filePath, file);
-      if (storageError) {
-        setError(`Error subiendo ${file.name}: ${storageError.message}`);
-        setUploading(false);
-        return;
-      }
-      // Register in DB
-      const docData: any = {
-        name: file.name,
-        type: file.type,
-        url: storageData?.path,
-        uploaded_at: new Date().toISOString(),
-      };
-      if (startupId) docData.startup_id = startupId;
-      const { data: insertedDoc, error: dbError } = await supabase.from('documents').insert([docData]).select();
-      if (dbError) {
-        setError(`Error registrando ${file.name} en la base de datos: ${dbError.message}`);
-        setUploading(false);
-        return;
-      }
 
-      // Extract text and process with AI
-      let extractedText = '';
-      try {
-        extractedText = await extractTextFromFile(file);
-      } catch (err) {
-        setError(`Error extrayendo texto de ${file.name}`);
-        setUploading(false);
-        return;
-      }
-
-      // Vectorize text and store embedding
-      let embedding: number[] | null = null;
-      if (extractedText && insertedDoc && insertedDoc[0]) {
-        embedding = await vectorizeText(extractedText);
-        if (embedding) {
-          await supabase
-            .from('documents')
-            .update({ embedding })
-            .eq('id', insertedDoc[0].id);
-        }
-      }
-
-      if (extractedText && insertedDoc && insertedDoc[0]) {
-        setProcessing(true);
-        try {
-          await processDocumentWithAI(extractedText, insertedDoc[0].id);
-        } catch (error) {
-          console.error('Error processing with AI:', error);
-        }
-        setProcessing(false);
-      }
+    if (!startupId) {
+      setError('Startup ID is required');
+      return;
     }
-    setUploading(false);
-    setSuccess('¡Archivos subidos y procesados correctamente!');
-    if (fileInputRef.current) fileInputRef.current.value = '';
+
+    setUploading(true);
+    setError(null);
+
+    try {
+      // Upload the file
+      const uploadResult = await uploadFile(file);
+      
+      // Extract text content
+      const textContent = await extractTextFromFile(file);
+      
+      // Process with AI if we have content
+      if (textContent) {
+        await processDocumentWithAI(textContent, uploadResult.id);
+      }
+
+      // Update the document with the extracted text
+      await fetch(`/api/documents/${uploadResult.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: textContent,
+        }),
+      });
+
+      // Clear the file input
+      fileInput.value = '';
+      
+      // Notify parent component
+      if (onUploadComplete) {
+        onUploadComplete();
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setError('Error uploading file');
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
-    <div className="border rounded p-4 bg-white shadow max-w-md">
-      <h3 className="text-lg font-bold mb-2">Sube tus documentos</h3>
-      <input ref={fileInputRef} type="file" multiple className="mb-2" />
-      <button
-        onClick={handleUpload}
-        className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
-        disabled={uploading || processing || extracting || vectorizing}
-      >
-        {uploading
-          ? 'Subiendo...'
-          : extracting
-          ? 'Extrayendo texto...'
-          : vectorizing
-          ? 'Vectorizando...'
-          : processing
-          ? 'Procesando IA...'
-          : 'Subir archivos'}
-      </button>
-      {error && <p className="text-red-600 mt-2">{error}</p>}
-      {success && <p className="text-green-600 mt-2">{success}</p>}
+    <div className="space-y-4">
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+        <div className="text-center">
+          <div className="mt-4">
+            <label htmlFor="file-upload" className="cursor-pointer">
+              <span className="mt-2 block text-sm font-medium text-gray-900">
+                Upload a document
+              </span>
+              <span className="mt-1 block text-xs text-gray-500">
+                PDF, TXT, or other text files
+              </span>
+            </label>
+            <input
+              id="file-upload"
+              name="file-upload"
+              type="file"
+              className="sr-only"
+              accept=".pdf,.txt,.doc,.docx"
+              onChange={() => setError(null)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <button
+          onClick={handleUpload}
+          disabled={uploading || extracting || vectorizing}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {uploading ? 'Uploading...' : extracting ? 'Extracting...' : vectorizing ? 'Processing...' : 'Upload Document'}
+        </button>
+      </div>
     </div>
   );
 } 

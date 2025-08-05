@@ -7,7 +7,10 @@ yarn-error.log*
 # Next.js
 .next/
 out/
+
+# Production
 build/
+dist/
 
 # Environment variables
 .env
@@ -16,21 +19,12 @@ build/
 .env.test.local
 .env.production.local
 
-# Vercel
-.vercel
-
-# TypeScript
-*.tsbuildinfo
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
+# Database and uploads
+data/
+*.db
+*.sqlite
+*.sqlite3
+uploads/
 
 # Logs
 logs
@@ -63,27 +57,15 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
+# dotenv environment variables file
+.env
 
-# next.js build output
-.next
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# nuxt.js build output
-.nuxt
-
-# vuepress build output
-.vuepress/dist
-
-# Serverless directories
-.serverless
-
-# FuseBox cache
-.fusebox/
-
-# DynamoDB Local files
-.dynamodb/
-
-# TernJS port file
-.tern-port 
+# OS
+.DS_Store
+Thumbs.db 
